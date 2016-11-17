@@ -1,5 +1,5 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
@@ -7,9 +7,9 @@
 </head>
 <body>
 <h3><c:out value="${product.getName()}"></c:out></h3>
-<table border="1" width="1">
+<table class="products">
     <tr><td>Price</td>
-        <td><fmt:formatNumber value="${product.getPrice()}" currencyCode="£" minIntegerDigits="1" maxFractionDigits="2"></fmt:formatNumber></td>
+        <td><fmt:formatNumber currencyCode="EUR" minIntegerDigits="1" maxFractionDigits="5" >${product.getPrice()}</fmt:formatNumber></td>
     </tr>
     <tr><td>Amount</td>
         <td><fmt:formatNumber value="${product.getAmount()}" minIntegerDigits="1" maxFractionDigits="0" currencyCode=""></fmt:formatNumber></td>

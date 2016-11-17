@@ -2,6 +2,8 @@ package io.github.satr.yzwebshop.repositories;
 
 import io.github.satr.yzwebshop.entities.Product;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -35,4 +37,20 @@ public class ProductRepository extends RepositoryBase<Product> {
     protected String getSqlForSingle() {
         return MainSqlSelect + " WHERE ID = ?";
     }
+
+    @Override
+    protected void executeUpdate(Connection connection, Product entity) throws SQLException {
+        String sql = "UPDATE Product SET Name = ?, Price = ? WHERE ID = ?";
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        preparedStatement.setString(1, entity.getName());
+        preparedStatement.setDouble(2, entity.getPrice());
+        preparedStatement.setInt(3, entity.getId());
+        preparedStatement.executeUpdate();
+        sql = "UPDATE Stock SET Amount = ? WHERE ProductID = ?";
+        preparedStatement = connection.prepareStatement(sql);
+        preparedStatement.setInt(1, entity.getAmount());
+        preparedStatement.setInt(2, entity.getId());
+        preparedStatement.executeUpdate();
+    }
+
 }

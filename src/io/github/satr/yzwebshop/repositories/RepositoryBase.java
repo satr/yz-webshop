@@ -66,4 +66,19 @@ public abstract class RepositoryBase<T> {
     protected abstract T getEntity(ResultSet resultSet) throws SQLException;
 
     protected abstract String getSqlForSingle();
+
+    public void save(T entity) throws ServletException {
+        try {
+            try(Connection connection = DriverManager.getConnection(url, user, password)) {
+                executeUpdate(connection, entity);
+            }
+        }
+        catch (Exception ex) {
+            ex.printStackTrace();
+            throw new ServletException(ex);
+        }
+    }
+
+    protected abstract void executeUpdate(Connection connection, T entity) throws SQLException;
+
 }
