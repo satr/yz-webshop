@@ -1,0 +1,59 @@
+div.page {
+    min-height: 90%;
+}
+
+div.top-menu {
+    width: 100%;
+}
+
+table.top-menu {
+    border-collapse:collapse;
+    border:1px solid #DDD;
+    background-color: #12fcff;
+    font-family: Arial, sans-serif;
+    font-size: 1em;
+    width: 100%
+}
+
+table.top-menu td {
+    padding:5px;
+}
+
+
+table.product {
+    border-collapse:collapse;
+    border:1px solid #EEE;
+}
+
+table.product td{
+    border: 1px solid #EEE;
+    padding: 3px;
+}
+
+table.product th{
+    border: 1px solid #EEE;
+    padding: 3px;
+    background-color: #EEE;
+}
+
+table.product td.num{
+    text-align: right;
+}
+
+div.header {
+    font-family: Courier;
+    font-size: 3em;
+    text-align: center;
+    width: 100%;
+    background-color: #AFA;
+}
+div.footer {
+    font-family: Courier;
+    font-size: 0.5em;
+    text-align: center;
+    width: 100%;
+}
+div.entry {
+    width: 100%;
+    min-height: 90%;
+}

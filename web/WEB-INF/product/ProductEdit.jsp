@@ -4,9 +4,11 @@
 <html>
 <head>
     <title>Product</title>
-    <link href="/css/MainStyles.css" rel="stylesheet" type="text/css" />
+    <link href="/css/style.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
+<div class="page">
+<%@include file="/Header.jsp" %>
 <c:set var="isEditAction" scope="request" value='${action == "edit"}'/>
 <h3><c:out value='${isEditAction ? "Edit Product" : "Add Product"}'></c:out></h3>
 <form action="/product/${action}" method="post">
@@ -36,5 +38,7 @@
     <input type="button" value="Cancel" onclick="window.location = '/products'">
     </div>
 </form>
+</div>
+<%@include file="/Footer.jsp" %>
 </body>
 </html>

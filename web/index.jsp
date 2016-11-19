@@ -2,8 +2,13 @@
 <html>
   <head>
     <title>YZ-WebShop</title>
+    <link href="/css/style.css" rel="stylesheet" type="text/css" />
   </head>
   <body>
-  <a href="/products">Products</a>
+  <div class="page">
+  <%@include file="/Header.jsp" %>
+
+  </div>
+  <%@include file="/Footer.jsp" %>
   </body>
 </html>

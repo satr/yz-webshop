@@ -4,14 +4,17 @@
 <html>
 <head>
     <title>Product Detail</title>
-    <link href="/css/MainStyles.css" rel="stylesheet" type="text/css" />
+    <link href="/css/style.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
+<div class="page">
+<%@include file="/Header.jsp" %>
+
 <h3>Product</h3>
 <div>
 <table class="product">
-    <tr><th>SKU</th>
-        <th>${product.getId()}</th>
+    <tr><td>SKU</td>
+        <td>${product.getId()}</td>
     </tr>
     <tr><td>Name</td>
         <td>${product.getName()}</td>
@@ -28,5 +31,8 @@
 <div>
     <input type="button" value="Back" onclick="window.location = '/products'">
 </div>
+</div>
+
+<%@include file="/Footer.jsp" %>
 </body>
 </html>

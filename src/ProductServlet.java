@@ -151,9 +151,9 @@ public class ProductServlet extends HttpServlet {
     //-- Constants --
     private class ProductPage {
 
-        public static final String EDIT = "ProductEdit.jsp";
-        public static final String DETAIL = "ProductDetail.jsp";
-        public static final String LIST = "ProductList.jsp";
+        public static final String EDIT = "product/ProductEdit.jsp";
+        public static final String DETAIL = "product/ProductDetail.jsp";
+        public static final String LIST = "product/ProductList.jsp";
     }
 
     private class ContextAttr {
