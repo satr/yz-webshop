@@ -4,12 +4,14 @@
 <html>
 <head>
     <title>Product Detail</title>
+    <link href="/css/MainStyles.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <h3>Product</h3>
-<table class="products">
-    <tr><td>SKU</td>
-        <td>${product.getId()}</td>
+<div>
+<table class="product">
+    <tr><th>SKU</th>
+        <th>${product.getId()}</th>
     </tr>
     <tr><td>Name</td>
         <td>${product.getName()}</td>
@@ -21,6 +23,10 @@
         <td><fmt:formatNumber value="${product.getAmount()}" minIntegerDigits="1" maxFractionDigits="0" currencyCode=""></fmt:formatNumber></td>
     </tr>
 </table>
-<a href="#" onclick="history.back()"><< Back</a>
+</div>
+<br />
+<div>
+    <input type="button" value="Back" onclick="window.location = '/products'">
+</div>
 </body>
 </html>
