@@ -1,6 +1,5 @@
 package io.github.satr.yzwebshop.repositories;
 
-import javax.servlet.ServletException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,21 +19,15 @@ public abstract class RepositoryBase<T> {
         }
     }
 
-    public List<T> getList() throws ServletException {
-        try {
-            ArrayList<T> list = new ArrayList<>();
-            try(Connection connection = DriverManager.getConnection(url, user, password);
-                Statement sqlStatement = connection.createStatement();
-                ResultSet resultSet = sqlStatement.executeQuery(getSqlForList());) {
-                while(resultSet.next()) {
-                    addEntity(list, resultSet);
-                }
-                return list;
+    public List<T> getList() throws SQLException {
+        ArrayList<T> list = new ArrayList<>();
+        try(Connection connection = DriverManager.getConnection(url, user, password);
+            Statement sqlStatement = connection.createStatement();
+            ResultSet resultSet = sqlStatement.executeQuery(getSqlForList());) {
+            while(resultSet.next()) {
+                addEntity(list, resultSet);
             }
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-            throw new ServletException(ex);
+            return list;
         }
     }
 
@@ -42,17 +35,11 @@ public abstract class RepositoryBase<T> {
 
     protected abstract void addEntity(List<T> list, ResultSet resultSet) throws SQLException;
 
-    public T get(int id) throws ServletException {
-        try {
-            try(Connection connection = DriverManager.getConnection(url, user, password);
-                PreparedStatement sqlStatement = prepareStatementForGetEntityById(connection, id);
-                ResultSet resultSet = sqlStatement.executeQuery()) {
-                return resultSet.next() ? getEntity(resultSet) : null;
-            }
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-            throw new ServletException(ex);
+    public T get(int id) throws SQLException {
+        try(Connection connection = DriverManager.getConnection(url, user, password);
+            PreparedStatement sqlStatement = prepareStatementForGetEntityById(connection, id);
+            ResultSet resultSet = sqlStatement.executeQuery()) {
+            return resultSet.next() ? getEntity(resultSet) : null;
         }
     }
 
@@ -67,15 +54,9 @@ public abstract class RepositoryBase<T> {
 
     protected abstract String getSqlForSingle();
 
-    public void save(T entity) throws ServletException {
-        try {
-            try(Connection connection = DriverManager.getConnection(url, user, password)) {
-                executeUpdate(connection, entity);
-            }
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-            throw new ServletException(ex);
+    public void save(T entity) throws SQLException {
+        try(Connection connection = DriverManager.getConnection(url, user, password)) {
+            executeUpdate(connection, entity);
         }
     }
 
