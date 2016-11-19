@@ -1,24 +1,49 @@
+div.header {
+    font-family: Courier;
+    font-size: 3em;
+    text-align: center;
+    width: 100%;
+    background-color: #AFA;
+}
+
+div.footer {
+    font-family: Courier;
+    font-size: 0.5em;
+    text-align: center;
+    width: 100%;
+}
+
 div.page {
     min-height: 90%;
 }
 
 div.top-menu {
     width: 100%;
-}
-
-table.top-menu {
     border-collapse:collapse;
     border:1px solid #DDD;
-    background-color: #12fcff;
+    background-color: #9aeb9a;
     font-family: Arial, sans-serif;
     font-size: 1em;
-    width: 100%
 }
 
-table.top-menu td {
-    padding:5px;
+div.top-menu-left {
+    float: left;
 }
 
+div.top-menu-right {
+    float: right;
+}
+
+ul.top-menu {
+    list-style:none;
+    padding: 5px;
+    margin:0;
+}
+
+ul.top-menu li {
+    display: inline;
+    padding: 5px;
+}
 
 table.product {
     border-collapse:collapse;
@@ -38,22 +63,4 @@ table.product th{
 
 table.product td.num{
     text-align: right;
-}
-
-div.header {
-    font-family: Courier;
-    font-size: 3em;
-    text-align: center;
-    width: 100%;
-    background-color: #AFA;
-}
-div.footer {
-    font-family: Courier;
-    font-size: 0.5em;
-    text-align: center;
-    width: 100%;
-}
-div.entry {
-    width: 100%;
-    min-height: 90%;
 }
