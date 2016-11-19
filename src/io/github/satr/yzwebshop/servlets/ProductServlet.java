@@ -1,5 +1,7 @@
-import helpers.DispatchHelper;
-import helpers.ParameterHelper;
+package io.github.satr.yzwebshop.servlets;
+
+import io.github.satr.yzwebshop.helpers.DispatchHelper;
+import io.github.satr.yzwebshop.helpers.ParameterHelper;
 import io.github.satr.yzwebshop.entities.Product;
 import io.github.satr.yzwebshop.repositories.ProductRepository;
 

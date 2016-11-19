@@ -1,6 +1,6 @@
 package tests;
 
-import helpers.StringHelper;
+import io.github.satr.yzwebshop.helpers.StringHelper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

@@ -5,6 +5,6 @@
          version="3.1">
     <servlet>
         <servlet-name>ProductServlet</servlet-name>
-        <servlet-class>ProductServlet</servlet-class>
+        <servlet-class>io.github.satr.yzwebshop.servlets.ProductServlet</servlet-class>
     </servlet>
 </web-app>

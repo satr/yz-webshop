@@ -1,4 +1,4 @@
-package helpers;
+package io.github.satr.yzwebshop.helpers;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;

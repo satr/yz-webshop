@@ -1,4 +1,4 @@
-package helpers;
+package io.github.satr.yzwebshop.helpers;
 
 import java.util.regex.Pattern;
 
