@@ -2,6 +2,7 @@ package io.github.satr.yzwebshop.servlets;
 
 import io.github.satr.yzwebshop.entities.Account;
 import io.github.satr.yzwebshop.helpers.DispatchHelper;
+import io.github.satr.yzwebshop.helpers.Env;
 import io.github.satr.yzwebshop.helpers.ParameterHelper;
 import io.github.satr.yzwebshop.repositories.AccountRepository;
 
@@ -21,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+
+import static io.github.satr.yzwebshop.helpers.Env.*;
 
 @WebServlet(value = {"/account/login/*","/account/logout/*","/account/signup/*","/account/detail/*","/account/edit/*",})
 public class AccountServlet extends HttpServlet {
@@ -55,18 +58,16 @@ public class AccountServlet extends HttpServlet {
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        removeContextAttr(request, ContextAttr.ACTION);
+        removeRequestAttr(request, RequestAttr.ACTION);
         switch(request.getServletPath()) {
             case ActionPath.DETAIL:
                 showDetail(request, response);
                 break;
             case ActionPath.LOGIN:
-                removeContextAttr(request, ContextAttr.INVALID_CREDENTIALS);
-                showLogin(request, response);
+                dispatchLogin(request, response);
                 break;
             case ActionPath.LOGOUT:
-                removeContextAttr(request, ContextAttr.ACCOUNT);
-                removeContextAttr(request, ContextAttr.ACTION);
+                removeSessionAttr(request, Env.SessionAttr.ACCOUNT);
                 DispatchHelper.dispatchHome(request, response);
                 break;
             case ActionPath.SIGNUP:
@@ -87,83 +88,123 @@ public class AccountServlet extends HttpServlet {
         String email = ParameterHelper.getString(request, RequestParam.EMAIL, errorMessages);
         String password = ParameterHelper.getString(request, RequestParam.PASSWORD, errorMessages);
 
-        if(!validateParams(request, response, email, password, errorMessages)
-           ||  !authenticate(request, response, email, password))
+        if(!validateCredentialParams(request, response, email, password, errorMessages)
+           ||  !authenticate(request, response, email, password, errorMessages)) {
+            setRequestAttr(request, RequestAttr.ERRORS, errorMessages);
+            dispatchLogin(request, response);
             return;
+        }
 
-        String action = getContextAttr(request, ContextAttr.ACTION);
-        if (action == null || action.equals(Action.LOGIN))
-            DispatchHelper.dispatchHome(request, response);
-        else if (action.equals(Action.VIEW))
-            showDetail(request, response);
-        else if (action.equals(Action.EDIT))
-            showEdit(request, response);
-        else
-            DispatchHelper.dispatchError(request, response, "Undefined action \"%s\"", action == null ? "Empty" : action);
+        DispatchHelper.dispatchHome(request, response);
     }
 
     private void processSignUp(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        Account account = getContextAttr(request, ContextAttr.ACCOUNT);
-        if(account == null || getContextAttr(request, ContextAttr.ACTION) != Action.SIGNUP) {
-            showSignUp(request, response);
+        ArrayList<String> errorMessages = new ArrayList<>();
+        EditableAccount editableAccount = new EditableAccount();
+        populateFromRequest(request, editableAccount, errorMessages);
+
+        if (!validateSignUpParams(editableAccount, errorMessages)) {
+            setRequestAttr(request, RequestAttr.ERRORS, errorMessages);
+            setRequestAttr(request, RequestAttr.EDITABLE_ACCOUNT, editableAccount);
+            setRequestAttr(request, RequestAttr.ACTION, Action.SIGNUP);
+            DispatchHelper.dispatchWebInf(request, response, AccountPage.EDIT);
+            return;
+        }
+
+        Account account = new Account();
+        try {
+            account.setCreatedOn(new Timestamp(new Date().getTime()));
+            account.setPasswordSalt(createRandomString());
+            setAccountPassword(account, editableAccount.getNewPassword());
+            updateAccountFromEditable(account, editableAccount);
+            accountRepository.save(account);
+            account = accountRepository.getByEmail(account.getEmail());
+        } catch (Exception e) {
+            DispatchHelper.dispatchError(request, response, e.getMessage());//TODO -  wrap with user-friendly message and log
+            return;
+        }
+        setSessionAttr(request, Env.SessionAttr.ACCOUNT, account);
+        DispatchHelper.dispatchWebInf(request, response, AccountPage.WELCOME_REGISTERED);
+    }
+
+    private void processEdit(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Account account = getSessionAttr(request, Env.SessionAttr.ACCOUNT);
+        if(account == null) {
+            showEdit(request, response);
             return;
         }
 
         ArrayList<String> errorMessages = new ArrayList<>();
-        account.setEmail(ParameterHelper.getString(request, RequestParam.EMAIL, errorMessages));
-        String repeatEmail = ParameterHelper.getString(request, RequestParam.REPEAT_EMAIL, errorMessages);
-        String password = ParameterHelper.getString(request, RequestParam.PASSWORD, errorMessages);
-        String repeatPassword = ParameterHelper.getString(request, RequestParam.REPEAT_PASSWORD, errorMessages);
-        account.setFirstName(ParameterHelper.getString(request, RequestParam.FIRST_NAME, errorMessages));
-        account.setMiddleName(ParameterHelper.getString(request, RequestParam.MIDDLE_NAME, errorMessages));
-        account.setLastName(ParameterHelper.getString(request, RequestParam.LAST_NAME, errorMessages));
+        EditableAccount editableAccount = new EditableAccount().copyFrom(account);
+        populateFromRequest(request, editableAccount, errorMessages);
+        editableAccount.setCurrentPassword(ParameterHelper.getString(request, RequestParam.CURRENT_PASSWORD, errorMessages));
 
-        removeContextAttr(request, ContextAttr.ACCOUNT_PARAMS_ISSUES);
-
-        if (!validateSignUpParams(account, repeatEmail, password, repeatPassword, errorMessages)) {
-            setContextAttr(request, ContextAttr.ACCOUNT_PARAMS_ISSUES, errorMessages);
+        if (!validateEditParams(account, editableAccount, errorMessages)) {
+            setRequestAttr(request, RequestAttr.ERRORS, errorMessages);
+            setRequestAttr(request, RequestAttr.EDITABLE_ACCOUNT, editableAccount);
+            setRequestAttr(request, RequestAttr.ACTION, Action.EDIT);
             DispatchHelper.dispatchWebInf(request, response, AccountPage.EDIT);
             return;
         }
 
         try {
-            Timestamp timestamp = new Timestamp(new Date().getTime());
-            account.setCreatedOn(timestamp);
-            account.setUpdatedOn(timestamp);
-            account.setPasswordSalt("" + random.nextLong());
-            setAccountPassword(account, password);
+            if(shouldChangePassword(account, editableAccount))
+                setAccountPassword(account, editableAccount.getNewPassword());
+            updateAccountFromEditable(account, editableAccount);
             accountRepository.save(account);
         } catch (Exception e) {
             DispatchHelper.dispatchError(request, response, e.getMessage());//TODO -  wrap with user-friendly message and log
             return;
         }
 
-        removeContextAttr(request, ContextAttr.ACTION);
-        DispatchHelper.dispatchWebInf(request, response, AccountPage.WELCOME_REGISTERED);
+        DispatchHelper.dispatchWebInf(request, response, AccountPage.DETAIL);
+    }
+
+    private String createRandomString() {
+        return "" + random.nextLong();
+    }
+
+    private void updateAccountFromEditable(Account account, EditableAccount editableAccount) throws NoSuchAlgorithmException {
+        account.setFirstName(editableAccount.getFirstName());
+        account.setMiddleName(editableAccount.getMiddleName());
+        account.setLastName(editableAccount.getLastName());
+        account.setEmail(editableAccount.getEmail());
+        account.setUpdatedOn(new Timestamp(new Date().getTime()));
+    }
+
+    private void populateFromRequest(HttpServletRequest request, EditableAccount editableAccount, ArrayList<String> errorMessages) {
+        editableAccount.setEmail(ParameterHelper.getString(request, RequestParam.EMAIL, errorMessages));
+        editableAccount.setRepeatedEmail(ParameterHelper.getString(request, RequestParam.REPEATED_EMAIL, errorMessages));
+        editableAccount.setNewPassword(ParameterHelper.getString(request, RequestParam.PASSWORD, errorMessages));
+        editableAccount.setRepeatedPassword(ParameterHelper.getString(request, RequestParam.REPEATED_PASSWORD, errorMessages));
+        editableAccount.setFirstName(ParameterHelper.getString(request, RequestParam.FIRST_NAME, errorMessages));
+        editableAccount.setMiddleName(ParameterHelper.getString(request, RequestParam.MIDDLE_NAME, errorMessages));
+        editableAccount.setLastName(ParameterHelper.getString(request, RequestParam.LAST_NAME, errorMessages));
     }
 
     private void setAccountPassword(Account account, String password) throws NoSuchAlgorithmException {
         account.setPasswordHash(getHashBy(password, account.getPasswordSalt()));
     }
 
-    private boolean validateSignUpParams(Account account, String repeatEmail, String password, String repeatPassword, ArrayList<String> errorMessages) throws ServletException, IOException {
-        validateNewNames(account.getFirstName(), account.getFirstName(), errorMessages);
-        validateNewEmail(account.getEmail(), repeatEmail, errorMessages);
-        validateNewPassword(password, repeatPassword, errorMessages);
+    private boolean validateSignUpParams(EditableAccount editableAccount, ArrayList<String> errorMessages) throws ServletException, IOException {
+        validateNewNames(editableAccount, errorMessages);
+        validateNewEmail(editableAccount, errorMessages);
+        validateNewPassword(editableAccount, errorMessages);
         return errorMessages.size() == 0;
     }
 
-    private boolean validateEditParams(Account account, String email, String repeatEmail, String firstName, String lastName, String currentPassword, String newPassword,
-                                       String repeatedPassword, ArrayList<String> errorMessages) throws ServletException, IOException {
-        validateNewNames(firstName, lastName, errorMessages);
-        if(account.getEmail().compareTo(email) != 0)
-            validateNewEmail(email, repeatEmail, errorMessages);
-        if(!isEmptyOrWhitespace(newPassword) || !isEmptyOrWhitespace(repeatedPassword)) {
-            if(isEmptyOrWhitespace(currentPassword))
+    private boolean validateEditParams(Account account, EditableAccount editableAccount, ArrayList<String> errorMessages) throws ServletException, IOException {
+        validateNewNames(editableAccount, errorMessages);
+
+        if(account.getEmail().compareTo(editableAccount.getEmail()) != 0)
+            validateNewEmail(editableAccount, errorMessages);
+
+        if(!isEmptyOrWhitespace(editableAccount.getNewPassword()) || !isEmptyOrWhitespace(editableAccount.getRepeatedPassword())) {
+            if(isEmptyOrWhitespace(editableAccount.getCurrentPassword()))
                 errorMessages.add("Missed Current Password.");
-            else if(!validatePassword(account, currentPassword))
+            else if(!validatePassword(account, editableAccount.getCurrentPassword()))
                 errorMessages.add("Invalid Current Password.");
-            validateNewPassword(newPassword, repeatedPassword, errorMessages);
+            validateNewPassword(editableAccount, errorMessages);
         }
         return errorMessages.size() == 0;
     }
@@ -172,38 +213,38 @@ public class AccountServlet extends HttpServlet {
         return value == null || value.trim().length() == 0;
     }
 
-    private void validateNewNames(String firstName, String lastName, ArrayList<String> errorMessages) {
-        if(isEmptyOrWhitespace(firstName))
+    private void validateNewNames(EditableAccount editableAccount, ArrayList<String> errorMessages) {
+        if(isEmptyOrWhitespace(editableAccount.getFirstName()))
             errorMessages.add("Missed First Name.");
-        if(isEmptyOrWhitespace(lastName))
+        if(isEmptyOrWhitespace(editableAccount.getLastName()))
             errorMessages.add("Missed Last Name.");
     }
 
-    private void validateNewPassword(String password, String repeatedPassword, ArrayList<String> errorMessages) {
-        boolean missedPassword = isEmptyOrWhitespace(password);
-        if(missedPassword)
+    private void validateNewPassword(EditableAccount editableAccount, ArrayList<String> errorMessages) {
+        boolean missedNewPassword = isEmptyOrWhitespace(editableAccount.getNewPassword());
+        if(missedNewPassword)
             errorMessages.add("Missed Password.");
-        boolean missedRepeatedPassword = isEmptyOrWhitespace(repeatedPassword);
+        boolean missedRepeatedPassword = isEmptyOrWhitespace(editableAccount.getRepeatedPassword());
         if(missedRepeatedPassword)
             errorMessages.add("Missed Repeated Password.");
-        if(missedPassword || missedRepeatedPassword)
+        if(missedNewPassword || missedRepeatedPassword)
             return;
-        if(password.compareTo(repeatedPassword) != 0)
+        if(editableAccount.getNewPassword().compareTo(editableAccount.getRepeatedPassword()) != 0)
             errorMessages.add("Password and Repeated Password do not match.");
     }
 
-    private void validateNewEmail(String email, String repeatEmail, ArrayList<String> errorMessages) {
-        boolean missedEmail = email == null || email.length() == 0;
+    private void validateNewEmail(EditableAccount editableAccount, ArrayList<String> errorMessages) {
+        boolean missedEmail = isEmptyOrWhitespace(editableAccount.getEmail());
         if(missedEmail)
             errorMessages.add("Missed Email.");
-        boolean missedRepeatedEmail = repeatEmail == null || repeatEmail.length() == 0;
+        boolean missedRepeatedEmail = isEmptyOrWhitespace(editableAccount.getRepeatedEmail());
         if(missedRepeatedEmail)
             errorMessages.add("Missed Repeated Email.");
         if (missedEmail || missedRepeatedEmail)
             return;
-        if(email.compareTo(repeatEmail) != 0)
+        if(editableAccount.getEmail().compareTo(editableAccount.getRepeatedEmail()) != 0)
             errorMessages.add("Email and Repeated Email do not match.");
-        else if( checkEmailAlreadyRegistered(email, errorMessages))
+        else if(checkEmailAlreadyRegistered(editableAccount.getEmail(), errorMessages))
             errorMessages.add("User with this Email already registered.");
     }
 
@@ -216,22 +257,17 @@ public class AccountServlet extends HttpServlet {
         return true;
     }
 
-    private boolean validateParams(HttpServletRequest request, HttpServletResponse response, String email, String password, List<String> errorMessages) throws ServletException, IOException {
-        if(email == null || email.length() == 0)
-            errorMessages.add("Email should not be empty.");
+    private boolean validateCredentialParams(HttpServletRequest request, HttpServletResponse response, String email, String password, List<String> errorMessages) throws ServletException, IOException {
+        if(isEmptyOrWhitespace(email))
+            errorMessages.add("Missed Email.");
 
-        if(password == null || password.length() == 0)
-            errorMessages.add("Password should not be empty.");
+        if(isEmptyOrWhitespace(password))
+            errorMessages.add("Missed Password.");
 
-        if (errorMessages.size() > 0) {
-            setContextAttr(request, ContextAttr.INVALID_CREDENTIALS, ContextAttrValue.INVALID_CREDENTIALS);
-            showLogin(request, response);
-            return false;
-        }
-        return true;
+        return errorMessages.size() == 0;
     }
 
-    private boolean authenticate(HttpServletRequest request, HttpServletResponse response, String email, String password) throws ServletException, IOException {
+    private boolean authenticate(HttpServletRequest request, HttpServletResponse response, String email, String password, ArrayList<String> errorMessages) throws ServletException, IOException {
         Account account = null;
         try {
             account = accountRepository.getByEmail(email);
@@ -241,12 +277,11 @@ public class AccountServlet extends HttpServlet {
         }
 
         if(account == null || !validatePassword(account, password)) {
-            setContextAttr(request, ContextAttr.INVALID_CREDENTIALS, ContextAttrValue.INVALID_CREDENTIALS);
-            showLogin(request, response);
+            errorMessages.add("Invalid Email or Password.");
             return false;
         }
 
-        setContextAttr(request, ContextAttr.ACCOUNT, account);
+        setSessionAttr(request, Env.SessionAttr.ACCOUNT, account);
         return true;
     }
 
@@ -268,102 +303,41 @@ public class AccountServlet extends HttpServlet {
         return String.format("%032x", new BigInteger(1, md5.digest()));
     }
 
-    private void processEdit(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        Account account = getContextAttr(request, ContextAttr.ACCOUNT);
-        if(account == null || getContextAttr(request, ContextAttr.ACTION) != Action.EDIT) {
-            showEdit(request, response);
-            return;
-        }
-
-        ArrayList<String> errorMessages = new ArrayList<>();
-        String email = ParameterHelper.getString(request, RequestParam.EMAIL, errorMessages);
-        String repeatEmail = ParameterHelper.getString(request, RequestParam.REPEAT_EMAIL, errorMessages);
-        String currentPassword = ParameterHelper.getString(request, RequestParam.CURRENT_PASSWORD, errorMessages);
-        String newPassword = ParameterHelper.getString(request, RequestParam.PASSWORD, errorMessages);
-        String repeatedPassword = ParameterHelper.getString(request, RequestParam.REPEAT_PASSWORD, errorMessages);
-        String firstName = ParameterHelper.getString(request, RequestParam.FIRST_NAME, errorMessages);
-        String middleName = ParameterHelper.getString(request, RequestParam.MIDDLE_NAME, errorMessages);
-        String lastName = ParameterHelper.getString(request, RequestParam.LAST_NAME, errorMessages);
-
-        removeContextAttr(request, ContextAttr.ACCOUNT_PARAMS_ISSUES);
-
-        if (!validateEditParams(account, email, repeatEmail, firstName, lastName, currentPassword, newPassword, repeatedPassword, errorMessages)) {
-            setContextAttr(request, ContextAttr.ACCOUNT_PARAMS_ISSUES, errorMessages);
-            DispatchHelper.dispatchWebInf(request, response, AccountPage.EDIT);
-            return;
-        }
-
-        try {
-            account.setFirstName(firstName);
-            account.setMiddleName(middleName);
-            account.setLastName(lastName);
-            if(shouldChangePassword(account, currentPassword, newPassword, repeatedPassword))
-                setAccountPassword(account, newPassword);
-            account.setEmail(email);
-            Timestamp timestamp = new Timestamp(new Date().getTime());
-            account.setUpdatedOn(timestamp);
-            accountRepository.save(account);
-        } catch (Exception e) {
-            DispatchHelper.dispatchError(request, response, e.getMessage());//TODO -  wrap with user-friendly message and log
-            return;
-        }
-
-        removeContextAttr(request, ContextAttr.ACTION);
-        DispatchHelper.dispatchWebInf(request, response, AccountPage.WELCOME_REGISTERED);
-    }
-
-    private boolean shouldChangePassword(Account account, String currentPassword, String newPassword, String repeatedPassword) {
-        return !isEmptyOrWhitespace(newPassword) && !isEmptyOrWhitespace(repeatedPassword)
-                && newPassword.compareTo(repeatedPassword) == 0
-                && currentPassword.compareTo(newPassword) != 0
-                && validatePassword(account, currentPassword);
-    }
-
-    private void removeContextAttr(HttpServletRequest request, String attrName) {
-        request.getServletContext().removeAttribute(attrName);
+    private boolean shouldChangePassword(Account account, EditableAccount editableAccount) {
+        return !isEmptyOrWhitespace(editableAccount.getNewPassword()) && !isEmptyOrWhitespace(editableAccount.getRepeatedPassword())
+                && editableAccount.getNewPassword().compareTo(editableAccount.getRepeatedPassword()) == 0
+                && editableAccount.getCurrentPassword().compareTo(editableAccount.getNewPassword()) != 0
+                && validatePassword(account, editableAccount.getCurrentPassword());
     }
 
     private void showDetail(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        setContextAttr(request, ContextAttr.ACTION, Action.VIEW);
-        if (!validateSession(request, response)) {
-            showLogin(request, response);
+        if (getSessionAttr(request, Env.SessionAttr.ACCOUNT) == null) {
+            dispatchLogin(request, response);
             return;
         }
         DispatchHelper.dispatchWebInf(request, response, AccountPage.DETAIL);
     }
 
     private void showEdit(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        setContextAttr(request, ContextAttr.ACTION, Action.EDIT);
-        if (!validateSession(request, response)) {
-            showLogin(request, response);
+        Account account = getSessionAttr(request, Env.SessionAttr.ACCOUNT);
+        if (account == null) {
+            dispatchLogin(request, response);
             return;
         }
+        setRequestAttr(request, RequestAttr.ACTION, Action.EDIT);
+        setRequestAttr(request, RequestAttr.EDITABLE_ACCOUNT, new EditableAccount().copyFrom(account));
         DispatchHelper.dispatchWebInf(request, response, AccountPage.EDIT);
     }
 
     private void showSignUp(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        removeContextAttr(request, ContextAttr.ACCOUNT_PARAMS_ISSUES);
-        removeContextAttr(request, ContextAttr.ACCOUNT);
-        setContextAttr(request, ContextAttr.ACTION, Action.SIGNUP);
-        setContextAttr(request, ContextAttr.ACCOUNT, new Account());
+        removeSessionAttr(request, Env.SessionAttr.ACCOUNT);
+        setRequestAttr(request, RequestAttr.ACTION, Action.SIGNUP);
+        setRequestAttr(request, RequestAttr.EDITABLE_ACCOUNT, new EditableAccount());
         DispatchHelper.dispatchWebInf(request, response, AccountPage.EDIT);
     }
 
-    private void showLogin(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private void dispatchLogin(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         DispatchHelper.dispatchWebInf(request, response, AccountPage.LOGIN);
-    }
-
-    private boolean validateSession(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        Account account = getContextAttr(request, ContextAttr.ACCOUNT);
-        return account != null;
-    }
-
-    private <T> T getContextAttr(HttpServletRequest request, String attrName) {
-        return (T) request.getServletContext().getAttribute(attrName);
-    }
-
-    private void setContextAttr(HttpServletRequest request, String attrName, Object value) {
-        request.getServletContext().setAttribute(attrName, value);
     }
 
     //-- Constants --
@@ -375,19 +349,18 @@ public class AccountServlet extends HttpServlet {
         public static final String WELCOME_REGISTERED = "account/AccountWelcomeRegistered.jsp";
     }
 
-    private class ContextAttr {
-        public final static String ACCOUNT = "account";
+    private class RequestAttr {
+        public final static String EDITABLE_ACCOUNT = "editableAccount";
         public static final String ACTION = "action";
         public static final String INVALID_CREDENTIALS = "invalid_credentials";
-        public static final String ACCOUNT_PARAMS_ISSUES = "account_params_issues";
+        public static final String ERRORS = "errors";
     }
 
     private class RequestParam {
-        public static final String ID = "id";
         public static final String EMAIL = "email";
-        public static final String REPEAT_EMAIL = "repeatEmail";
+        public static final String REPEATED_EMAIL = "repeatedEmail";
         public static final String PASSWORD = "password";
-        public static final String REPEAT_PASSWORD = "repeatPassword";
+        public static final String REPEATED_PASSWORD = "repeatedPassword";
         public static final String CURRENT_PASSWORD = "currentPassword";
         public static final String FIRST_NAME = "firstName";
         public static final String MIDDLE_NAME = "middleName";
@@ -413,5 +386,54 @@ public class AccountServlet extends HttpServlet {
     private class ContextAttrValue {
 
         public static final String INVALID_CREDENTIALS = "invalid_credentials";
+    }
+
+    public class EditableAccount extends Account {
+        private String repeatedEmail;
+        private String currentPassword;
+        private String newPassword;
+        private String repeatedPassword;
+
+        public EditableAccount copyFrom(Account account) {
+            setFirstName(account.getFirstName());
+            setMiddleName(account.getMiddleName());
+            setLastName(account.getLastName());
+            setEmail(account.getEmail());
+            setCreatedOn(account.getCreatedOn());
+            setUpdatedOn(account.getUpdatedOn());
+            return this;
+        }
+
+        public String getRepeatedEmail() {
+            return repeatedEmail;
+        }
+
+        public void setRepeatedEmail(String repeatedEmail) {
+            this.repeatedEmail = repeatedEmail;
+        }
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+
+        public void setNewPassword(String newPassword) {
+            this.newPassword = newPassword;
+        }
+
+        public String getRepeatedPassword() {
+            return repeatedPassword;
+        }
+
+        public void setRepeatedPassword(String repeatedPassword) {
+            this.repeatedPassword = repeatedPassword;
+        }
+
+        public String getCurrentPassword() {
+            return currentPassword;
+        }
+
+        public void setCurrentPassword(String currentPassword) {
+            this.currentPassword = currentPassword;
+        }
     }
 }

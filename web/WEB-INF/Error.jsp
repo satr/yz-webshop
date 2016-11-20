@@ -6,9 +6,7 @@
 </head>
 <body>
 <h2>Error</h2>
-<h4><c:forEach items="${messages}" var="message">
-    <c:out value="${message}"></c:out><br />
-</c:forEach></h4>
+<jsp:include page="Errors.jsp" />
 <input type="button" value="Back" onclick="history.back()">
 </body>
 </html>

@@ -9,10 +9,6 @@
 <body>
 <div class="page">
     <%@include file="/Header.jsp" %>
-    <c:if test="${account == null}">
-        <c:redirect url="/" ></c:redirect>
-    </c:if>
-    <%--<c:set var="isEditAction" scope="request" value='${action == "edit" && account != null && account.getId() != 0}'/>--%>
     <c:choose>
         <c:when test='${action == "edit"}'>
             <h3>Edit Account</h3>
@@ -23,29 +19,25 @@
     </c:choose>
     <form action="/account/${action}" method="post">
         <div>
-            <div class="error-message">
-                <c:forEach items="${account_params_issues}" var="issue_item">
-                    <c:out value="${issue_item}" /><br />
-                </c:forEach>
-            </div>
+            <jsp:include page="../Errors.jsp" />
             <table class="account">
                 <tr><td>First Name</td>
-                    <td><input type="text" name="firstName" value="${account.getFirstName()}" /></td>
+                    <td><input type="text" name="firstName" value="${editableAccount.getFirstName()}" /></td>
                 </tr>
                 <tr><td>Middle Name</td>
-                    <td><input type="text" name="middleName" value="${account.getMiddleName()}" /></td>
+                    <td><input type="text" name="middleName" value="${editableAccount.getMiddleName()}" /></td>
                 </tr>
                 <tr><td>Last Name</td>
-                    <td><input type="text" name="lastName" value="${account.getLastName()}" /></td>
+                    <td><input type="text" name="lastName" value="${editableAccount.getLastName()}" /></td>
                 </tr>
                 <tr><td>Email</td>
-                    <td><input type="email" name="email" value="${account.getEmail()}" /></td>
+                    <td><input type="email" name="email" value="${editableAccount.getEmail()}" /></td>
                 </tr>
                 <c:choose>
                     <c:when test='${action == "edit"}'>
                         <tr>
                             <td>Repeat New Email</td>
-                            <td><input type="text" name="repeatEmail" /></td>
+                            <td><input type="text" name="repeatedEmail" value="${editableAccount.getRepeatedEmail()}" /></td>
                         </tr>
                         <tr><td>Current Password</td>
                             <td><input type="password" name="currentPassword" /></td>
@@ -54,25 +46,25 @@
                             <td><input type="password" name="password" /></td>
                         </tr>
                         <tr><td>Repeat New Password</td>
-                            <td><input type="password" name="repeatPassword" /></td>
+                            <td><input type="password" name="repeatedPassword" /></td>
                         </tr>
                         <tr><td>Created</td>
-                            <td>${account.getCreatedOn()}</td>
+                            <td>${editableAccount.getCreatedOn()}</td>
                         </tr>
                         <tr><td>Last Updated</td>
-                            <td>${account.getUpdatedOn()}</td>
+                            <td>${editableAccount.getUpdatedOn()}</td>
                         </tr>
                     </c:when>
                     <c:otherwise>
                         <tr>
                             <td>Repeat Email</td>
-                            <td><input type="text" name="repeatEmail" /></td>
+                            <td><input type="text" name="repeatedEmail" value="${editableAccount.getRepeatedEmail()}"  /></td>
                         </tr>
                         <tr><td>Password</td>
                         <td><input type="password" name="password" /></td>
                         </tr>
                         <tr><td>Repeat Password</td>
-                        <td><input type="password" name="repeatPassword" /></td>
+                        <td><input type="password" name="repeatedPassword" /></td>
                         </tr>
                     </c:otherwise>
                 </c:choose>
@@ -81,7 +73,7 @@
         <br />
         <div>
             <input type="submit" value="Save">
-            <input type="button" value="Cancel" onclick="window.location = '/account/details'">
+            <input type="button" value="Cancel" onclick="window.location = '/account/detail'">
         </div>
         </form>
 </div>

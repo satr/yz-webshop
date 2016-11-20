@@ -17,15 +17,15 @@ public class DispatchHelper {
         request.getRequestDispatcher(pageUrl).forward(request, response);
     }
 
-    public static void dispatchError(HttpServletRequest request, HttpServletResponse response, List<String> messages) throws ServletException, IOException {
-        request.getServletContext().setAttribute("messages", messages);
+    public static void dispatchError(HttpServletRequest request, HttpServletResponse response, List<String> errors) throws ServletException, IOException {
+        Env.setRequestAttr(request, Env.RequestAttr.ERRORS, errors);
         dispatchWebInf(request, response, "Error.jsp");
     }
 
     public static void dispatchError(HttpServletRequest request, HttpServletResponse response, String format, Object... args) throws ServletException, IOException {
-        ArrayList<String> messages = new ArrayList<>();
-        messages.add(String.format(format, args));
-        dispatchError(request, response, messages);
+        ArrayList<String> errors = new ArrayList<>();
+        errors.add(String.format(format, args));
+        dispatchError(request, response, errors);
     }
 
     public static void dispatchHome(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {

@@ -12,10 +12,7 @@
 
     <h3>Login</h3>
     <div>
-        <c:if test="${invalid_credentials != null}">
-            <h4 class="error-message">Invalid email or password. Please try again.</h4>
-        </c:if>
-
+        <jsp:include page="../Errors.jsp" />
         <form action="/account/login" method="post">
             <div>
                 <table class="product">
