@@ -19,4 +19,8 @@ public class StringHelper {
     public static boolean isDouble(String value) {
         return doublePattern.matcher(value).matches();
     }
+
+    public static boolean isEmptyOrWhitespace(String value) {
+        return value == null || value.trim().length() == 0;
+    }
 }

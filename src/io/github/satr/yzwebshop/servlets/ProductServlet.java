@@ -2,6 +2,7 @@ package io.github.satr.yzwebshop.servlets;
 
 import io.github.satr.yzwebshop.entities.Product;
 import io.github.satr.yzwebshop.helpers.DispatchHelper;
+import io.github.satr.yzwebshop.helpers.Env;
 import io.github.satr.yzwebshop.helpers.ParameterHelper;
 import io.github.satr.yzwebshop.repositories.ProductRepository;
 import io.github.satr.yzwebshop.repositories.Repository;
@@ -17,6 +18,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.github.satr.yzwebshop.helpers.Env.setRequestAttr;
+import static io.github.satr.yzwebshop.helpers.StringHelper.isEmptyOrWhitespace;
+
 @WebServlet(value = {"/products", "/product/detail/*", "/product/add/*", "/product/edit/*"})
 public class ProductServlet extends HttpServlet {
 
@@ -31,128 +35,163 @@ public class ProductServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         switch(request.getServletPath()) {
             case ActionPath.ADD:
+                processAdd(request, response);
+                break;
             case ActionPath.EDIT:
-                processAddEdit(request, response);
-                return;
+                processEdit(request, response);
+                break;
             default:
                 showList(request, response);
-                return;
-        }
-    }
-
-    private void processAddEdit(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        Product product = (Product)request.getServletContext().getAttribute(ContextAttr.PRODUCT);
-        boolean isEditAction = request.getServletContext().getAttribute(ContextAttr.ACTION) == "edit";
-        request.getServletContext().removeAttribute(ContextAttr.ACTION);
-        List<String> errorMessages = new ArrayList<>();
-        if (product == null) {
-            DispatchHelper.dispatchError(request, response, "Product is not initialized.");
-            return;
-        }
-
-        String name = ParameterHelper.getString(request, RequestParam.NAME, errorMessages);
-        double price = ParameterHelper.getDouble(request, RequestParam.PRICE, errorMessages);
-        int amount = isEditAction ? ParameterHelper.getInt(request, RequestParam.AMOUNT, errorMessages) : 0;
-
-        if(name == null || name.length() == 0)
-            errorMessages.add("Name should not be empty.");
-
-        if (errorMessages.size() > 0) {
-            DispatchHelper.dispatchError(request, response, errorMessages);
-            return;
-        }
-
-        try {
-            product.setName(name);
-            product.setPrice(price);
-            product.setAmount(amount);
-
-            productRepository.save(product);
-
-            showList(request, response);
-
-        } catch (SQLException e) {
-            DispatchHelper.dispatchError(request, response, e.getMessage());
+                break;
         }
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        removeContextAttr(request, ContextAttr.ACTION);
         switch(request.getServletPath()) {
             case ActionPath.DETAIL:
                 showDetail(request, response);
-                return;
+                break;
             case ActionPath.ADD:
                 showAdd(request, response);
-                return;
+                break;
             case ActionPath.EDIT:
                 showEdit(request, response);
-                return;
+                break;
             default:
                 showList(request, response);
-                return;
+                break;
         }
     }
 
+    private void processAdd(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        ArrayList<String> errorMessages = new ArrayList<>();
+        EditableProduct editableProduct = new EditableProduct();
+        populateFromRequest(request, editableProduct, errorMessages);
+
+        validateProduct(editableProduct, errorMessages);
+
+        if (errorMessages.size() > 0) {
+            dispatchEdit(request, response, editableProduct, Action.ADD, errorMessages);
+            return;
+        }
+
+        try {
+            Product product = new Product();
+            updateProductFromEditable(product, editableProduct);
+            productRepository.save(product);
+        } catch (SQLException e) {
+            DispatchHelper.dispatchError(request, response, e.getMessage());
+            return;
+        }
+        showList(request, response);
+    }
+
+    private void processEdit(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        ArrayList<String> errorMessages = new ArrayList<>();
+        EditableProduct editableProduct = new EditableProduct();
+        populateFromRequest(request, editableProduct, errorMessages);
+        editableProduct.setAmount(ParameterHelper.getInt(request, RequestParam.AMOUNT, errorMessages));
+
+        validateProduct(editableProduct, errorMessages);
+
+        Product product = null;
+        if (errorMessages.size() == 0)
+            product = getRequestedProduct(request, response, errorMessages);
+
+        if (errorMessages.size() > 0) {
+            dispatchEdit(request, response, editableProduct, Action.EDIT, errorMessages);
+            return;
+        }
+
+        try {
+            updateProductFromEditable(product, editableProduct);
+            productRepository.save(product);
+        } catch (SQLException e) {
+            DispatchHelper.dispatchError(request, response, e.getMessage());
+            return;
+        }
+        showList(request, response);
+    }
+
+    private void dispatchEdit(HttpServletRequest request, HttpServletResponse response, EditableProduct editableProduct, String action, ArrayList<String> errorMessages) throws ServletException, IOException {
+        setRequestAttr(request, Env.RequestAttr.ERRORS, errorMessages);
+        setRequestAttr(request, ContextAttr.PRODUCT, editableProduct);
+        setRequestAttr(request, ContextAttr.ACTION, action);
+        DispatchHelper.dispatchWebInf(request, response, ProductPage.EDIT);
+    }
+
+    private void updateProductFromEditable(Product product, EditableProduct editableProduct) {
+        product.setName(editableProduct.getName());
+        product.setPrice(editableProduct.getPrice());
+        product.setAmount(editableProduct.getAmount());
+    }
+
+    private void validateProduct(EditableProduct editableProduct, ArrayList<String> errorMessages) {
+        if(isEmptyOrWhitespace(editableProduct.getName()))
+            errorMessages.add("Missed Name.");
+    }
+
+    private void populateFromRequest(HttpServletRequest request, EditableProduct editableProduct, ArrayList<String> errorMessages) {
+        editableProduct.setId(ParameterHelper.getInt(request, RequestParam.ID, errorMessages));
+        editableProduct.setName(ParameterHelper.getString(request, RequestParam.NAME, errorMessages));
+        editableProduct.setPrice(ParameterHelper.getDouble(request, RequestParam.PRICE, errorMessages));
+    }
+
     private void showAdd(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        setContextAttr(request, ContextAttr.PRODUCT, new Product());
-        setContextAttr(request, ContextAttr.ACTION, Action.ADD);
+        setRequestAttr(request, ContextAttr.PRODUCT, new Product());
+        setRequestAttr(request, ContextAttr.ACTION, Action.ADD);
         DispatchHelper.dispatchWebInf(request, response, ProductPage.EDIT);
     }
 
     private void showEdit(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        if (!prepareEntityAction(request, response))
+        ArrayList<String> errorMessages = new ArrayList<>();
+        Product product = getRequestedProduct(request, response, errorMessages);
+        if(product == null || errorMessages.size() > 0) {
+            DispatchHelper.dispatchError(request, response, errorMessages);
             return;
-        setContextAttr(request, ContextAttr.ACTION, Action.EDIT);
+        }
+        setRequestAttr(request, ContextAttr.PRODUCT, new EditableProduct().copyFrom(product));
+        setRequestAttr(request, ContextAttr.ACTION, Action.EDIT);
         DispatchHelper.dispatchWebInf(request, response, ProductPage.EDIT);
     }
 
     private void showDetail(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        if (!prepareEntityAction(request, response))
+        ArrayList<String> errorMessages = new ArrayList<>();
+        Product product = getRequestedProduct(request, response, errorMessages);
+        if (product == null || errorMessages.size() > 0) {
+            DispatchHelper.dispatchError(request, response, errorMessages);
             return;
+        }
+        setRequestAttr(request, ContextAttr.PRODUCT, product);
         DispatchHelper.dispatchWebInf(request, response, ProductPage.DETAIL);
     }
 
-    private boolean prepareEntityAction(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        ArrayList<String> errorMessages = new ArrayList<>();
+    private Product getRequestedProduct(HttpServletRequest request, HttpServletResponse response, ArrayList<String> errorMessages) throws ServletException, IOException {
         int id = ParameterHelper.getInt(request, RequestParam.ID, errorMessages);
-        if(errorMessages.size() > 0) {
-            errorMessages.add("Invalid product ID.");
-            DispatchHelper.dispatchError(request, response, errorMessages);
-            return false;
-        }
+        if(errorMessages.size() > 0)
+            return null;
         try {
             Product product = productRepository.get(id);
             if(product == null) {
-                DispatchHelper.dispatchError(request, response, "Product not found by SKU %d", id);
-                return false;
+                errorMessages.add("Product not found by SKU");
+                return null;
             }
-            setContextAttr(request, ContextAttr.PRODUCT, product);
-            return true;
+            return product;
         } catch (SQLException e) {
             DispatchHelper.dispatchError(request, response, e.getMessage());
-            return false;
+            return null;
         }
     }
 
     private void showList(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        request.getServletContext().removeAttribute(ContextAttr.ACTION);
         try {
             List<Product> products = productRepository.getList();
-            setContextAttr(request, ContextAttr.PRODUCT_LIST, products);
+            setRequestAttr(request, ContextAttr.PRODUCT_LIST, products);
         } catch (SQLException e) {
             DispatchHelper.dispatchError(request, response, e.getMessage());
             return;
         }
         DispatchHelper.dispatchWebInf(request, response, ProductPage.LIST);
-    }
-
-    private void setContextAttr(HttpServletRequest request, String attrName, Object value) {
-        request.getServletContext().setAttribute(attrName, value);
-    }
-
-    private void removeContextAttr(HttpServletRequest request, String attrName) {
-        request.getServletContext().removeAttribute(attrName);
     }
 
     //-- Constants --
@@ -187,5 +226,15 @@ public class ProductServlet extends HttpServlet {
 
         public static final String ADD = "add";
         public static final String EDIT = "edit";
+    }
+
+    public class EditableProduct extends Product {
+        public EditableProduct copyFrom(Product product) {
+            setId(product.getId());
+            setName(product.getName());
+            setPrice(product.getPrice());
+            setAmount(product.getAmount());
+            return this;
+        }
     }
 }

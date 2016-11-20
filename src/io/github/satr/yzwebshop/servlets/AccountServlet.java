@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Random;
 
 import static io.github.satr.yzwebshop.helpers.Env.*;
+import static io.github.satr.yzwebshop.helpers.StringHelper.isEmptyOrWhitespace;
 
 @WebServlet(value = {"/account/login/*","/account/logout/*","/account/signup/*","/account/detail/*","/account/edit/*",})
 public class AccountServlet extends HttpServlet {
@@ -209,10 +210,6 @@ public class AccountServlet extends HttpServlet {
         return errorMessages.size() == 0;
     }
 
-    private boolean isEmptyOrWhitespace(String value) {
-        return value == null || value.trim().length() == 0;
-    }
-
     private void validateNewNames(EditableAccount editableAccount, ArrayList<String> errorMessages) {
         if(isEmptyOrWhitespace(editableAccount.getFirstName()))
             errorMessages.add("Missed First Name.");
@@ -352,7 +349,6 @@ public class AccountServlet extends HttpServlet {
     private class RequestAttr {
         public final static String EDITABLE_ACCOUNT = "editableAccount";
         public static final String ACTION = "action";
-        public static final String INVALID_CREDENTIALS = "invalid_credentials";
         public static final String ERRORS = "errors";
     }
 
@@ -376,11 +372,8 @@ public class AccountServlet extends HttpServlet {
     }
 
     private class Action {
-        public static final String LOGIN = "login";
-        public static final String LOGOUT = "logout";
         public static final String EDIT = "edit";
         public static final String SIGNUP = "signup";
-        public static final String VIEW = "view";
     }
 
     private class ContextAttrValue {

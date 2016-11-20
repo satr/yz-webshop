@@ -13,6 +13,8 @@
     <h3><c:out value='${isEditAction ? "Edit Product" : "Add Product"}'></c:out></h3>
     <form action="/product/${action}" method="post">
         <div>
+        <input type="hidden" name="id" value="${product.getId()}"/>
+        <jsp:include page="../Errors.jsp" />
         <table class="product">
             <c:if test='${isEditAction}' >
                 <tr><td>SKU</td>
@@ -35,7 +37,7 @@
         <br />
         <div>
         <input type="submit" value="Save">
-        <input type="button" value="Cancel" onclick="window.location = '/products'">
+        <input type="button" value="Cancel" onclick="history.back()">
         </div>
     </form>
 </div>
