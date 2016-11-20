@@ -8,36 +8,36 @@
 </head>
 <body>
 <div class="page">
-<%@include file="/Header.jsp" %>
-<c:set var="isEditAction" scope="request" value='${action == "edit"}'/>
-<h3><c:out value='${isEditAction ? "Edit Product" : "Add Product"}'></c:out></h3>
-<form action="/product/${action}" method="post">
-    <div>
-    <table class="product">
-        <c:if test='${isEditAction}' >
-            <tr><td>SKU</td>
-                <td>${product.getId()}</td>
+    <%@include file="/Header.jsp" %>
+    <c:set var="isEditAction" scope="request" value='${action == "edit"}'/>
+    <h3><c:out value='${isEditAction ? "Edit Product" : "Add Product"}'></c:out></h3>
+    <form action="/product/${action}" method="post">
+        <div>
+        <table class="product">
+            <c:if test='${isEditAction}' >
+                <tr><td>SKU</td>
+                    <td>${product.getId()}</td>
+                </tr>
+            </c:if>
+            <tr><td>Name</td>
+                <td><input type="text" name="name" value="${product.getName()}" /></td>
             </tr>
-        </c:if>
-        <tr><td>Name</td>
-            <td><input type="text" name="name" value="${product.getName()}" /></td>
-        </tr>
-        <tr><td>Price</td>
-            <td><input type="text" name="price" value="${product.getPrice()}" /></td>
-        </tr>
-        <c:if test="${isEditAction}" >
-            <tr><td>Amount</td>
-                <td><input type="text" name="amount" value="${product.getAmount()}" /></td>
+            <tr><td>Price</td>
+                <td><input type="text" name="price" value="${product.getPrice()}" /></td>
             </tr>
-        </c:if>
-    </table>
-    </div>
-    <br />
-    <div>
-    <input type="submit" value="Save">
-    <input type="button" value="Cancel" onclick="window.location = '/products'">
-    </div>
-</form>
+            <c:if test="${isEditAction}" >
+                <tr><td>Amount</td>
+                    <td><input type="text" name="amount" value="${product.getAmount()}" /></td>
+                </tr>
+            </c:if>
+        </table>
+        </div>
+        <br />
+        <div>
+        <input type="submit" value="Save">
+        <input type="button" value="Cancel" onclick="window.location = '/products'">
+        </div>
+    </form>
 </div>
 <%@include file="/Footer.jsp" %>
 </body>

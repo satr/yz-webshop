@@ -27,4 +27,8 @@ public class DispatchHelper {
         messages.add(String.format(format, args));
         dispatchError(request, response, messages);
     }
+
+    public static void dispatchHome(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        dispatch(request, response, "/");
+    }
 }

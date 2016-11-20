@@ -8,7 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
-public class ProductRepository extends RepositoryBase<Product> {
+public class ProductRepository extends DriverManagerRepositoryBase<Product> {
 
     @Override
     protected void addEntity(List<Product> list, ResultSet resultSet) throws SQLException {

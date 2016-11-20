@@ -1,8 +1,8 @@
 package tests;
 
 import io.github.satr.yzwebshop.helpers.StringHelper;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class StringHelperTest {
     @Test

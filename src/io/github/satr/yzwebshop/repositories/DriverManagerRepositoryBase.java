@@ -5,12 +5,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public abstract class RepositoryBase<T> {
+public abstract class DriverManagerRepositoryBase<T> implements Repository<T> {
     String url = "jdbc:mysql://localhost/dev1";
     String user = "user1";
     String password = "qwerty";
 
-    public RepositoryBase() {
+    public DriverManagerRepositoryBase() {
         try{
             Class.forName("com.mysql.jdbc.Driver");
         }
@@ -19,6 +19,7 @@ public abstract class RepositoryBase<T> {
         }
     }
 
+    @Override
     public List<T> getList() throws SQLException {
         ArrayList<T> list = new ArrayList<>();
         try(Connection connection = DriverManager.getConnection(url, user, password);
@@ -35,6 +36,7 @@ public abstract class RepositoryBase<T> {
 
     protected abstract void addEntity(List<T> list, ResultSet resultSet) throws SQLException;
 
+    @Override
     public T get(int id) throws SQLException {
         try(Connection connection = DriverManager.getConnection(url, user, password);
             PreparedStatement sqlStatement = prepareStatementForGetEntityById(connection, id);
@@ -54,6 +56,7 @@ public abstract class RepositoryBase<T> {
 
     protected abstract String getSqlForSingle();
 
+    @Override
     public void save(T entity) throws SQLException {
         try(Connection connection = DriverManager.getConnection(url, user, password)) {
             executeUpdate(connection, entity);

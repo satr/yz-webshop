@@ -6,12 +6,15 @@
       <element id="directory" name="WEB-INF">
         <element id="directory" name="classes">
           <element id="module-output" name="yz-webshop" />
+          <element id="jpa-descriptors" facet="yz-webshop/jpa/JPA" />
         </element>
         <element id="directory" name="lib">
           <element id="library" level="project" name="Java EE 6-Java EE 6" />
           <element id="library" level="project" name="jstl-1.1.2" />
           <element id="library" level="project" name="jstl-1.2" />
           <element id="library" level="project" name="mysql:mysql-connector-java:6.0.5" />
+          <element id="library" level="project" name="Hibernate 5.2.3-5.2.3" />
+          <element id="library" level="project" name="org.hibernate:hibernate-entitymanager:5.2.3.Final" />
         </element>
       </element>
     </root>

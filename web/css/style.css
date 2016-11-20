@@ -64,3 +64,23 @@ table.product th{
 table.product td.num{
     text-align: right;
 }
+
+table.account {
+    border-collapse:collapse;
+    border:1px solid #EEE;
+}
+
+table.account td{
+    border: 1px solid #EEE;
+    padding: 3px;
+}
+
+table.account th{
+    border: 1px solid #EEE;
+    padding: 3px;
+    background-color: #EEE;
+}
+
+.error-message {
+    color: red;
+}

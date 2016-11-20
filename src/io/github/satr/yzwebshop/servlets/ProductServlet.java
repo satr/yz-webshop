@@ -1,9 +1,10 @@
 package io.github.satr.yzwebshop.servlets;
 
+import io.github.satr.yzwebshop.entities.Product;
 import io.github.satr.yzwebshop.helpers.DispatchHelper;
 import io.github.satr.yzwebshop.helpers.ParameterHelper;
-import io.github.satr.yzwebshop.entities.Product;
 import io.github.satr.yzwebshop.repositories.ProductRepository;
+import io.github.satr.yzwebshop.repositories.Repository;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -19,7 +20,7 @@ import java.util.List;
 @WebServlet(value = {"/products", "/product/detail/*", "/product/add/*", "/product/edit/*"})
 public class ProductServlet extends HttpServlet {
 
-    private ProductRepository productRepository;
+    private Repository<Product> productRepository;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -31,7 +32,7 @@ public class ProductServlet extends HttpServlet {
         switch(request.getServletPath()) {
             case ActionPath.ADD:
             case ActionPath.EDIT:
-                processAddEditProduct(request, response);
+                processAddEdit(request, response);
                 return;
             default:
                 showList(request, response);
@@ -39,7 +40,7 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    private void processAddEditProduct(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private void processAddEdit(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         Product product = (Product)request.getServletContext().getAttribute(ContextAttr.PRODUCT);
         boolean isEditAction = request.getServletContext().getAttribute(ContextAttr.ACTION) == "edit";
         request.getServletContext().removeAttribute(ContextAttr.ACTION);
@@ -76,7 +77,7 @@ public class ProductServlet extends HttpServlet {
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        request.getServletContext().removeAttribute(ContextAttr.ACTION);
+        removeContextAttr(request, ContextAttr.ACTION);
         switch(request.getServletPath()) {
             case ActionPath.DETAIL:
                 showDetail(request, response);
@@ -148,6 +149,10 @@ public class ProductServlet extends HttpServlet {
 
     private void setContextAttr(HttpServletRequest request, String attrName, Object value) {
         request.getServletContext().setAttribute(attrName, value);
+    }
+
+    private void removeContextAttr(HttpServletRequest request, String attrName) {
+        request.getServletContext().removeAttribute(attrName);
     }
 
     //-- Constants --
