@@ -11,9 +11,7 @@
     <%@include file="/Header.jsp" %>
 
     <h3>Product</h3>
-    <form action="/product/edit" method="get">
         <div>
-            <input type="hidden" name="id" value="${product.getId()}"/>
             <table class="product">
                 <tr>
                     <td>SKU</td>
@@ -37,10 +35,10 @@
         </div>
         <br/>
         <div>
-            <input type="submit" value="Edit">
+            <input type="button" value="Edit" onclick="window.location = '/product/edit/?id=${product.getId()}'">
+            <input type="button" value="Buy" onclick="window.location = '/cart/add/?id=${product.getId()}'">
             <input type="button" value="Back" onclick="window.location = '/products'">
         </div>
-    </form>
 </div>
 
 <%@include file="/Footer.jsp" %>

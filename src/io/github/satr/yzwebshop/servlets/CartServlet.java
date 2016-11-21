@@ -1,7 +1,5 @@
 package io.github.satr.yzwebshop.servlets;
 
-import io.github.satr.yzwebshop.helpers.DispatchHelper;
-
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -9,14 +7,30 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@WebServlet(value = {"/cart/*"})
+@WebServlet(value = {"/cart/add/*", "/cart/*"})
 public class CartServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-
+        String servletPath = request.getServletPath();
+        switch(servletPath) {
+            case ActionPath.ADD:
+//                processAdd(request, response);
+                break;
+            default:
+//                showList(request, response);
+                break;
+        }
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        DispatchHelper.dispatchWebInf(request, response, CartItemPage.LIST);
+        String servletPath = request.getServletPath();
+        switch(servletPath) {
+            case ActionPath.ADD:
+//                showAdd(request, response);
+                break;
+            default:
+//                showList(request, response);
+                break;
+        }
     }
 
     //-- Constants --
@@ -42,6 +56,7 @@ public class CartServlet extends HttpServlet {
         public static final String ADD = "/cart/add";
         public static final String EDIT = "/cart/edit";
         public static final String DETAIL = "/cart/detail";
+        public static final String LIST = "/cart";
     }
 
     private class Action {
